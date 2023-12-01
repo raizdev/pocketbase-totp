@@ -5,24 +5,21 @@ A module that makes totp authentication possible in PocketBase
 Example how to integrade it with VueJS
 https://github.com/raizdev/pocketbase-totp-vue
 
+
 # Run and build golang
 1. To init the dependencies
-   ``run go mod init myapp && go mod tidy.``
+   ``go mod init myapp && go mod tidy``
    
 3. To start the application
-   ``run go run main.go serve``
+   ``go run main.go serve``
    
 5. To build a statically linked executable
    You can run ``CGO_ENABLED=0 go build`` and then start the created executable with ``./myapp serve``.
 
-# .env
+# Installation
 Create text field in user collection and define the field name in ``secretField`` variable in .env file
 
-
-# Examples
-Generate TOTP function returns secret code which can be used for otp:totp qr code
-otpauth://totp/fixedserver.dev:test@gmail.co?secret=ABCODI2928D&issuer=fixedserver.dev
-
+# Integration in JS App
 ````
    pb.send('/auth-generate-totp')
 ````
