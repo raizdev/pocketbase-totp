@@ -3,7 +3,7 @@ A module that makes totp authentication possible in PocketBase
 
 # VueJS integration
 Example how to integrade it with VueJS
-https://github.com/raizdev/pocketbase-totp-vue[https://github.com/raizdev/pocketbase-totp-vue]
+https://github.com/raizdev/pocketbase-totp-vue
 
 # Run and build golang
 1. To init the dependencies
