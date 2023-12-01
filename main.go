@@ -4,14 +4,14 @@ import (
     "log"
     "net/http"
     "os"
-    
+
     "github.com/joho/godotenv"
     "github.com/labstack/echo/v5"
     "github.com/pocketbase/pocketbase"
     "github.com/pocketbase/pocketbase/apis"
     "github.com/pocketbase/pocketbase/models"
     "github.com/pocketbase/pocketbase/core"
-	"github.com/pquerna/otp/totp"
+    "github.com/pquerna/otp/totp"
 )
 
 func goDotEnvVariable(key string) string {
@@ -32,8 +32,10 @@ func main() {
 
     // serves static files from the provided public dir (if exists)
     app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
-        e.Router.GET("/*", apis.StaticDirectoryHandler(os.DirFS("./pb_public"), false))
 
+        issuer := goDotEnvVariable("issuer")
+        secretField := goDotEnvVariable("secretField")
+        
         e.Router.POST("/auth-login-totp", func(c echo.Context) error {
     
             data := &struct {
@@ -52,12 +54,12 @@ func main() {
                 return apis.NewBadRequestError("Invalid credentials", err)
             }
 
-            if data.TOTPCode == "" && record.Get("secret_otp") != ""  {
+            if data.TOTPCode == "" && record.Get(secretField) != ""  {
                 return c.JSON(http.StatusOK, map[string]string{"message": "Authenticator enabled", "status": "authenticator_enabled"})
             }
 
             if data.TOTPCode != "" {
-                valid := totp.Validate(data.TOTPCode, record.Get("secret_otp").(string))
+                valid := totp.Validate(data.TOTPCode, record.Get(secretField).(string))
                 if !valid {
                     return apis.NewForbiddenError("Google authenticator code not correct", nil)
                 }
@@ -81,12 +83,12 @@ func main() {
                 return apis.NewForbiddenError("Only auth records can access this endpoint", nil)
             }
 
-            valid := totp.Validate(data.TOTPCode, authRecord.Get("secret_otp").(string))
+            valid := totp.Validate(data.TOTPCode, authRecord.Get(secretField).(string))
             if !valid {
                 return apis.NewForbiddenError("Google authenticator code not correct", nil)
             }
 
-            authRecord.Set("secret_otp", nil)
+            authRecord.Set(secretField, nil)
 	        app.Dao().Save(authRecord)
     
             return c.JSON(http.StatusOK, map[string]string{"message": "Google Authenticator is now deactivated", "status": "success"})
@@ -105,7 +107,7 @@ func main() {
                 return apis.NewBadRequestError("Failed to read request data", err)
             }
 
-            if data.Issuer != goDotEnvVariable("issuer") {
+            if data.Issuer != issuer {
                 return apis.NewForbiddenError("Unkown authentication issuer", nil)
             }
 
@@ -119,7 +121,7 @@ func main() {
                 return apis.NewForbiddenError("Google authenticator code not correct", nil)
             }
 
-            authRecord.Set("secret_otp", data.Secret)
+            authRecord.Set(secretField, data.Secret)
 	        app.Dao().Save(authRecord)
     
             return c.JSON(http.StatusOK, map[string]string{"message": "Google Authenticator is now activated", "status": "success"})
@@ -132,14 +134,12 @@ func main() {
                 return apis.NewForbiddenError("Only auth records can access this endpoint", nil)
             }
 
-            if authRecord.Get("secret_otp") != "" {
+            if authRecord.Get(secretField) != "" {
                 return apis.NewForbiddenError("Authenticator already exists for this user", nil)
             }
 
-            dotenvIssuer := goDotEnvVariable("issuer")
-
             key, err := totp.Generate(totp.GenerateOpts{
-                Issuer: dotenvIssuer,
+                Issuer: issuer,
                 AccountName: authRecord.Get("email").(string),
             })
 
@@ -147,7 +147,7 @@ func main() {
                 return apis.NewForbiddenError(err.Error(), nil)
             }
 
-            return c.JSON(http.StatusOK, map[string]string{"secret": key.Secret(), "issuer": dotenvIssuer, "status": "success"})
+            return c.JSON(http.StatusOK, map[string]string{"secret": key.Secret(), "issuer": issuer, "status": "success"})
         }, /* optional middlewares */)
     
         return nil
