@@ -3,7 +3,6 @@ package main
 import (
     "log"
     "net/http"
-    "fmt"
     "os"
     
     "github.com/joho/godotenv"
@@ -13,7 +12,6 @@ import (
     "github.com/pocketbase/pocketbase/models"
     "github.com/pocketbase/pocketbase/core"
 	"github.com/pquerna/otp/totp"
-    "github.com/spf13/cobra"
 )
 
 func goDotEnvVariable(key string) string {
@@ -32,13 +30,6 @@ func main() {
 
     app := pocketbase.New()
 
-    app.RootCmd.AddCommand(&cobra.Command{
-        Use: "issuer",
-        Run: func(cmd *cobra.Command, args []string) {
-            fmt.Print(cmd)
-        },
-    })
-
     // serves static files from the provided public dir (if exists)
     app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
         e.Router.GET("/*", apis.StaticDirectoryHandler(os.DirFS("./pb_public"), false))
@@ -46,15 +37,15 @@ func main() {
         e.Router.POST("/auth-login-totp", func(c echo.Context) error {
     
             data := &struct {
-				Email    string `form:"email" json:"email"`
-				Password string `form:"password" json:"password"`
+                Email    string `form:"email" json:"email"`
+                Password string `form:"password" json:"password"`
                 TOTPCode string `form:"totpCode" json:"totpCode"`
-			}{}
+            }{}
 
-			// read the request data
-			if err := c.Bind(data); err != nil {
-				return apis.NewBadRequestError("Failed to read request data", err)
-			}
+            // read the request data
+            if err := c.Bind(data); err != nil {
+                return apis.NewBadRequestError("Failed to read request data", err)
+            }
 
             record, err := app.Dao().FindFirstRecordByData("users", "email", data.Email)
             if err != nil || !record.ValidatePassword(data.Password) {
@@ -77,14 +68,20 @@ func main() {
 
         e.Router.POST("/auth-remove-totp", func(c echo.Context) error {
 
+            data := &struct {
+                TOTPCode string `form:"totpCode" json:"totpCode"`
+            }{}
+
+            if err := c.Bind(data); err != nil {
+                return apis.NewBadRequestError("Failed to read request data", err)
+            }
+
             authRecord, _ := c.Get(apis.ContextAuthRecordKey).(*models.Record)
             if authRecord == nil {
                 return apis.NewForbiddenError("Only auth records can access this endpoint", nil)
             }
 
-            data := apis.RequestInfo(c).Data
-
-            valid := totp.Validate(data["totpCode"].(string), authRecord.Get("secret_otp").(string))
+            valid := totp.Validate(data.TOTPCode, authRecord.Get("secret_otp").(string))
             if !valid {
                 return apis.NewForbiddenError("Google authenticator code not correct", nil)
             }
@@ -97,19 +94,32 @@ func main() {
 
         e.Router.POST("/auth-activate-totp", func(c echo.Context) error {
 
+            data := &struct {
+                Secret   string `form:"secret" json:"secret"`
+                Issuer   string `form:"issuer" json:"issuer"`
+                TOTPCode string `form:"totpCode" json:"totpCode"`
+            }{}
+
+            // read the request data
+            if err := c.Bind(data); err != nil {
+                return apis.NewBadRequestError("Failed to read request data", err)
+            }
+
+            if data.Issuer != goDotEnvVariable("issuer") {
+                return apis.NewForbiddenError("Unkown authentication issuer", nil)
+            }
+
             authRecord, _ := c.Get(apis.ContextAuthRecordKey).(*models.Record)
             if authRecord == nil {
                 return apis.NewForbiddenError("Only auth records can access this endpoint", nil)
             }
 
-            data := apis.RequestInfo(c).Data
-
-            valid := totp.Validate(data["totpCode"].(string), data["secret"].(string))
+            valid := totp.Validate(data.TOTPCode, data.Secret)
             if !valid {
                 return apis.NewForbiddenError("Google authenticator code not correct", nil)
             }
 
-            authRecord.Set("secret_otp", data["secret"].(string))
+            authRecord.Set("secret_otp", data.Secret)
 	        app.Dao().Save(authRecord)
     
             return c.JSON(http.StatusOK, map[string]string{"message": "Google Authenticator is now activated", "status": "success"})
