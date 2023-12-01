@@ -15,6 +15,10 @@ https://github.com/raizdev/pocketbase-totp-vue
 5. To build a statically linked executable
    You can run ``CGO_ENABLED=0 go build`` and then start the created executable with ``./myapp serve``.
 
+# .env
+Create text field in user collection and define the field name in ``secretField`` variable in .env file
+
+
 # Examples
 Generate TOTP function returns secret code which can be used for otp:totp qr code
 otpauth://totp/fixedserver.dev:test@gmail.co?secret=ABCODI2928D&issuer=fixedserver.dev
