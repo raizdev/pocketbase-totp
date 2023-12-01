@@ -1,6 +1,9 @@
 # pocketbase-totp
 A module that makes totp authentication possible in PocketBase
 
+Example how to integrade it with VueJS
+https://github.com/raizdev/pocketbase-totp-vue[https://github.com/raizdev/pocketbase-totp-vue]
+
 1. To init the dependencies
    ``run go mod init myapp && go mod tidy.``
    
