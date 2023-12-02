@@ -36,15 +36,14 @@ func main() {
         issuer := goDotEnvVariable("issuer")
         secretField := goDotEnvVariable("secretField")
         
-        e.Router.POST("/auth-login-totp", func(c echo.Context) error {
+        e.Router.POST("/auth-login", func(c echo.Context) error {
     
             data := &struct {
-                Email    string `form:"email" json:"email"`
-                Password string `form:"password" json:"password"`
-                TOTPCode string `form:"totpCode" json:"totpCode"`
+                Email           string `form:"email" json:"email"`
+                Password        string `form:"password" json:"password"`
+                TwoFactorCode   string `form:"twoFactorCode" json:"twoFactorCode"`
             }{}
 
-            // read the request data
             if err := c.Bind(data); err != nil {
                 return apis.NewBadRequestError("Failed to read request data", err)
             }
@@ -54,24 +53,24 @@ func main() {
                 return apis.NewBadRequestError("Invalid credentials", err)
             }
 
-            if data.TOTPCode == "" && record.Get(secretField) != ""  {
-                return c.JSON(http.StatusOK, map[string]string{"message": "Authenticator enabled", "status": "authenticator_enabled"})
+            if record.Get(secretField) != nil && data.TwoFactorCode == "" {
+                return c.JSON(http.StatusOK, map[string]bool{"tfa_required": true})
             }
 
-            if data.TOTPCode != "" {
-                valid := totp.Validate(data.TOTPCode, record.Get(secretField).(string))
+            if data.TwoFactorCode != "" {
+                valid := totp.Validate(data.TwoFactorCode, record.Get(secretField).(string))
                 if !valid {
-                    return apis.NewForbiddenError("Google authenticator code not correct", nil)
+                    return apis.NewBadRequestError("Google authenticator code not correct", nil)
                 }
             }
 
-			return apis.RecordAuthResponse(app, c, record, nil)
+            return apis.RecordAuthResponse(app, c, record, nil)
         }, apis.ActivityLogger(app))
 
         e.Router.POST("/auth-remove-totp", func(c echo.Context) error {
 
             data := &struct {
-                TOTPCode string `form:"totpCode" json:"totpCode"`
+                TwoFactorCode string `form:"twoFactorCode" json:"twoFactorCode"`
             }{}
 
             if err := c.Bind(data); err != nil {
@@ -83,7 +82,7 @@ func main() {
                 return apis.NewForbiddenError("Only auth records can access this endpoint", nil)
             }
 
-            valid := totp.Validate(data.TOTPCode, authRecord.Get(secretField).(string))
+            valid := totp.Validate(data.TwoFactorCode, authRecord.Get(secretField).(string))
             if !valid {
                 return apis.NewForbiddenError("Google authenticator code not correct", nil)
             }
@@ -97,9 +96,9 @@ func main() {
         e.Router.POST("/auth-activate-totp", func(c echo.Context) error {
 
             data := &struct {
-                Secret   string `form:"secret" json:"secret"`
-                Issuer   string `form:"issuer" json:"issuer"`
-                TOTPCode string `form:"totpCode" json:"totpCode"`
+                Secret          string `form:"secret" json:"secret"`
+                Issuer          string `form:"issuer" json:"issuer"`
+                TwoFactorCode   string `form:"twoFactorCode" json:"twoFactorCode"`
             }{}
 
             // read the request data
@@ -116,7 +115,7 @@ func main() {
                 return apis.NewForbiddenError("Only auth records can access this endpoint", nil)
             }
 
-            valid := totp.Validate(data.TOTPCode, data.Secret)
+            valid := totp.Validate(data.TwoFactorCode, data.Secret)
             if !valid {
                 return apis.NewForbiddenError("Google authenticator code not correct", nil)
             }
