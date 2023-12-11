@@ -53,7 +53,7 @@ func main() {
                 return apis.NewBadRequestError("Invalid credentials", err)
             }
 
-            if record.Get(secretField) != nil && data.TwoFactorCode == "" {
+            if record.Get(secretField) != "" && data.TwoFactorCode == "" {
                 return c.JSON(http.StatusOK, map[string]bool{"tfa_required": true})
             }
 
