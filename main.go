@@ -3,11 +3,15 @@ package main
 import (
     "log"
     "net/http"
+<<<<<<< HEAD
     "net/mail"
     "os"
     "math/rand"
     "time"
     "strconv"
+=======
+    "os"
+>>>>>>> 1546ab76d014288ed8b15bd7da05249429468d3f
 
     "github.com/joho/godotenv"
     "github.com/labstack/echo/v5"
@@ -15,8 +19,11 @@ import (
     "github.com/pocketbase/pocketbase/apis"
     "github.com/pocketbase/pocketbase/models"
     "github.com/pocketbase/pocketbase/core"
+<<<<<<< HEAD
     "github.com/pocketbase/pocketbase/tools/mailer"
     "github.com/sethvargo/go-password/password"
+=======
+>>>>>>> 1546ab76d014288ed8b15bd7da05249429468d3f
     "github.com/pquerna/otp/totp"
 )
 
@@ -48,6 +55,7 @@ func main() {
 
     app := pocketbase.New()
 
+<<<<<<< HEAD
     app.OnRecordBeforeCreateRequest("users").Add(func(e *core.RecordCreateEvent) error {
         data := &struct {
             Id  int `db:"user_id" json:"user_id"`
@@ -99,6 +107,11 @@ func main() {
 
     app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
 
+=======
+    // serves static files from the provided public dir (if exists)
+    app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
+
+>>>>>>> 1546ab76d014288ed8b15bd7da05249429468d3f
         issuer := goDotEnvVariable("issuer")
         secretField := goDotEnvVariable("secretField")
         
