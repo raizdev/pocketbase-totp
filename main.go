@@ -3,15 +3,7 @@ package main
 import (
     "log"
     "net/http"
-<<<<<<< HEAD
-    "net/mail"
     "os"
-    "math/rand"
-    "time"
-    "strconv"
-=======
-    "os"
->>>>>>> 1546ab76d014288ed8b15bd7da05249429468d3f
 
     "github.com/joho/godotenv"
     "github.com/labstack/echo/v5"
@@ -19,11 +11,9 @@ import (
     "github.com/pocketbase/pocketbase/apis"
     "github.com/pocketbase/pocketbase/models"
     "github.com/pocketbase/pocketbase/core"
-<<<<<<< HEAD
+
     "github.com/pocketbase/pocketbase/tools/mailer"
     "github.com/sethvargo/go-password/password"
-=======
->>>>>>> 1546ab76d014288ed8b15bd7da05249429468d3f
     "github.com/pquerna/otp/totp"
 )
 
@@ -55,63 +45,9 @@ func main() {
 
     app := pocketbase.New()
 
-<<<<<<< HEAD
-    app.OnRecordBeforeCreateRequest("users").Add(func(e *core.RecordCreateEvent) error {
-        data := &struct {
-            Id  int `db:"user_id" json:"user_id"`
-        }{}
-
-        err := app.Dao().DB().NewQuery("select * from users order by user_id desc limit 1").One(&data)
-
-        if err != nil {
-            return apis.NewBadRequestError("User cannot be created", err)
-        }
-
-        e.Record.Set("user_id", data.Id + 1)
-
-        return nil
-    })
-
-    app.OnRecordAfterCreateRequest("users").Add(func(e *core.RecordCreateEvent) error {
-
-        record, err := app.Dao().FindRecordById("users", e.Record.Get("id").(string))
-        if err != nil {
-            return err
-        }
-
-        password, err := password.Generate(8, 2, 0, true, true)
-        if err != nil {
-            return apis.NewBadRequestError("Failed to generate password", err)
-        }
-
-        record.Set("verified", true)
-        record.SetPassword(password)
-        record.PasswordHash()
-
-        if err := app.Dao().SaveRecord(record); err != nil {
-            return err
-        }
-
-        message := &mailer.Message{
-            From: mail.Address{
-                Address: app.Settings().Meta.SenderAddress,
-                Name:    app.Settings().Meta.SenderName,
-            },
-            To:      []mail.Address{{Address: record.Get("email").(string)}},
-            Subject: "Er is een account voor u aangemaakt",
-            HTML:    `Beste ` + record.Get("fullname").(string) + `<br><br> Er is een account voor u aangemaakt. <br><br> U kunt <a href="` + app.Settings().Meta.AppUrl + `" target="_blank">hier inloggen</a> met de volgende gegevens: <br><br> Gebruikersnaam: ` + record.Get("email").(string) + `<br> Wachtwoord: ` + password + `<br><br> Vergeet niet uw wachtwoord te wijzigen na het inloggen.<br><br> Met vriendelijke groet,<br>` + app.Settings().Meta.AppName,
-        }
-
-        return app.NewMailClient().Send(message)
-    })
-
-    app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
-
-=======
     // serves static files from the provided public dir (if exists)
     app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
 
->>>>>>> 1546ab76d014288ed8b15bd7da05249429468d3f
         issuer := goDotEnvVariable("issuer")
         secretField := goDotEnvVariable("secretField")
         
