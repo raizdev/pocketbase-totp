@@ -47,7 +47,23 @@ func generateUniqueId() string {
 func main() {
 
     app := pocketbase.New()
-    
+
+    app.OnRecordBeforeCreateRequest("users").Add(func(e *core.RecordCreateEvent) error {
+        data := &struct {
+            Id  int `db:"user_id" json:"user_id"`
+        }{}
+
+        err := app.Dao().DB().NewQuery("select * from users order by user_id desc limit 1").One(&data)
+
+        if err != nil {
+            return apis.NewBadRequestError("User cannot be created", err)
+        }
+
+        e.Record.Set("user_id", data.Id + 1)
+
+        return nil
+    })
+
     app.OnRecordAfterCreateRequest("users").Add(func(e *core.RecordCreateEvent) error {
 
         record, err := app.Dao().FindRecordById("users", e.Record.Get("id").(string))
